@@ -5,7 +5,7 @@ stages:
   - publishImageConfig:
       dockerfilePath: ./Dockerfile
       buildContext: .
-      tag: ${CICD_GIT_REPO_NAME}/${CICD_GIT_REPO_NAME}:${CICD_GIT_BRANCH}-${CICD_GIT_COMMIT}
+      tag: ${CICD_GIT_REPO_NAME}/${CICD_GIT_BRANCH}:latest
       pushRemote: true
       registry: harbor-demo.iiidevops.org
     env:
@@ -18,13 +18,10 @@ stages:
       branch:
         include:
         - master
-# on-build僅建置0-50的部分
-- name: Publish--vuejs image on-build
-  steps:
   - publishImageConfig:
       dockerfilePath: ./Dockerfile.onbuild
       buildContext: .
-      tag: ${CICD_GIT_REPO_NAME}/${CICD_GIT_REPO_NAME}:${CICD_GIT_BRANCH}
+      tag: ${CICD_GIT_REPO_NAME}/${CICD_GIT_BRANCH}:latest
       pushRemote: true
       registry: harbor-demo.iiidevops.org
     env:
@@ -37,13 +34,10 @@ stages:
       branch:
         include:
         - on-build
-# develop建置剩下的50~100的部分
-- name: Publish--vuejs image develop
-  steps:
   - publishImageConfig:
       dockerfilePath: ./Dockerfile.develop
       buildContext: .
-      tag: ${CICD_GIT_REPO_NAME}/${CICD_GIT_REPO_NAME}:${CICD_GIT_BRANCH}-${CICD_GIT_COMMIT}
+      tag: ${CICD_GIT_REPO_NAME}/${CICD_GIT_BRANCH}:latest
       pushRemote: true
       registry: harbor-demo.iiidevops.org
     env:
@@ -56,6 +50,33 @@ stages:
       branch:
         include:
         - develop
+  
+- name: Scan source code
+  steps:
+  - applyAppConfig:
+      catalogTemplate: cattle-global-data:iii-dev-charts3-source-scan
+      version: 0.1.0
+      name: ${CICD_GIT_REPO_NAME}-${CICD_GIT_BRANCH}-scan
+      targetNamespace: ${CICD_GIT_REPO_NAME}
+      answers:
+        pipeline.sequence: ${CICD_EXECUTION_SEQUENCE}
+        harbor.host: harbor-demo.iiidevops.org
+        # 基礎pipeline參數
+        git.url: ${CICD_GIT_URL}
+        git.repoName: ${CICD_GIT_REPO_NAME}
+        git.branch: ${CICD_GIT_BRANCH}
+        git.commitID: ${CICD_GIT_COMMIT}
+        # web參數設定
+        checkmarx.enabled: true
+        checkmarx.runnerVersion: 2.0.0
+        sonarqube.enabled: true
+        sonarqube.runnerVersion: latest
+    when:
+      branch:
+        include:
+          - master
+          - checkmarx
+
 # 部屬使用者應用(app)
 - name: Deploy app-web
   steps:
@@ -75,9 +96,17 @@ stages:
         git.commitID: ${CICD_GIT_COMMIT}
         git.repoName: ${CICD_GIT_REPO_NAME}
         # web參數設定
-        web.type: apache
-        # 10.50.1.63:5443/app/${CICD_GIT_REPO_NAME}-web
-        web.image: ${CICD_GIT_REPO_NAME}/${CICD_GIT_REPO_NAME}
-        web.tag: ${CICD_GIT_BRANCH}-${CICD_GIT_COMMIT}
+        web.port: 80
+        web.imageTag: ${CICD_GIT_REPO_NAME}/${CICD_GIT_BRANCH}:latest
+        newman.enabled: true
+        newman.runnerVersion: 2.0.1
+        webinspect.enabled: true
+        webinspect.runnerVersion: 1.1.0
+        ingress.externalHost: ingress-demo.iiidevops.org
+    when:
+      branch:
+        include:
+          - master
+          - develop
 
 notification: {}
