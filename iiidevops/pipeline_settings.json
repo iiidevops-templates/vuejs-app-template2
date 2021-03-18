@@ -1,6 +1,6 @@
 {
   "name": "vuejs simple web",
-  "description": "nodejs 11 / apache 2.4",
+  "description": "nodejs 11 / apache 2.4 <a class='el-link el-link--primary' href='https://github.com/iiidevops-templates/vuejs-app-tempplate2/blob/master/README.md' target='_blank'>simple web範本說明</a>",
   "arguments": [
   ]
 }
