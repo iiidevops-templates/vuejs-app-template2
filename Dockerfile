@@ -8,5 +8,7 @@ RUN ls && \
     npm install -D vuepress && \
     npm run build
 # 正式伺服器
+#FROM dockerhub/library/httpd:2.4
+#COPY --from=builder /home/node/dist/ /usr/local/apache2/htdocs/
 FROM dockerhub/library/httpd:2.4
-COPY --from=builder /home/node/dist/ /usr/local/apache2/htdocs/
+COPY --from=builder /home/node/app/.vuepress/dist/ /usr/local/apache2/htdocs/
